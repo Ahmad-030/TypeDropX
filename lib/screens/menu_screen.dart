@@ -158,7 +158,6 @@ class _MenuScreenState extends State<MenuScreen> {
                         subtitle: 'Type full words — harder, higher scores!',
                         color: AppColors.secondary,
                         onTap: _goWordMode,
-                        badgeText: 'NEW',
                       ),
 
                       const SizedBox(height: 24),
@@ -216,11 +215,6 @@ class _MenuScreenState extends State<MenuScreen> {
                       ).animate(delay: 480.ms).fadeIn().slideY(begin: 0.4, end: 0),
 
                       const Spacer(),
-                      Text(
-                        'v1.0.0  •  Developed by Ahmad Asif',
-                        style: GoogleFonts.poppins(
-                            fontSize: 11, color: AppColors.textSecondary),
-                      ).animate(delay: 600.ms).fadeIn(),
                       const SizedBox(height: 20),
                     ],
                   ),
