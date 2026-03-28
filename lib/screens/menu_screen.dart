@@ -5,6 +5,7 @@ import '../utils/app_theme.dart';
 import '../widgets/floating_letters_bg.dart';
 import '../widgets/menu_button.dart';
 import '../models/game_state.dart';
+import '../models/word_game_state.dart';
 import 'game_screen.dart';
 import 'word_game_screen.dart';
 import 'high_score_screen.dart';
@@ -20,16 +21,19 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen> {
   final GameState _gameState = GameState();
+  final WordGameState _wordGameState = WordGameState();
 
   @override
   void initState() {
     super.initState();
     _gameState.loadBestScore();
+    _wordGameState.loadBestScore();
   }
 
   @override
   void dispose() {
     _gameState.dispose();
+    _wordGameState.dispose();
     super.dispose();
   }
 
@@ -57,7 +61,10 @@ class _MenuScreenState extends State<MenuScreen> {
             FadeTransition(opacity: anim, child: child),
         transitionDuration: const Duration(milliseconds: 350),
       ),
-    );
+    ).then((_) {
+      _wordGameState.loadBestScore();
+      setState(() {});
+    });
   }
 
   @override
@@ -183,8 +190,11 @@ class _MenuScreenState extends State<MenuScreen> {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) =>
-                                  HighScoreScreen(gameState: _gameState)),
+                            builder: (_) => HighScoreScreen(
+                              gameState: _gameState,
+                              wordGameState: _wordGameState,
+                            ),
+                          ),
                         ),
                         color: AppColors.accent,
                         textColor: AppColors.textPrimary,
@@ -215,6 +225,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       ).animate(delay: 480.ms).fadeIn().slideY(begin: 0.4, end: 0),
 
                       const Spacer(),
+
                       const SizedBox(height: 20),
                     ],
                   ),

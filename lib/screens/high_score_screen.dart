@@ -2,37 +2,64 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/game_state.dart';
+import '../models/word_game_state.dart';
 import '../utils/app_theme.dart';
 
 class HighScoreScreen extends StatefulWidget {
   final GameState gameState;
-  const HighScoreScreen({super.key, required this.gameState});
+  final WordGameState wordGameState;
+
+  const HighScoreScreen({
+    super.key,
+    required this.gameState,
+    required this.wordGameState,
+  });
 
   @override
   State<HighScoreScreen> createState() => _HighScoreScreenState();
 }
 
-class _HighScoreScreenState extends State<HighScoreScreen> {
-  int _displayScore = 0;
-  int _displayLetters = 0;
-  int _displayCombo = 0;
+class _HighScoreScreenState extends State<HighScoreScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  // Letter mode animated counters
+  int _lScore = 0;
+  int _lLetters = 0;
+  int _lCombo = 0;
+
+  // Word mode animated counters
+  int _wScore = 0;
+  int _wWords = 0;
+  int _wCombo = 0;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _animateCounters();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   void _animateCounters() async {
     final gs = widget.gameState;
+    final wgs = widget.wordGameState;
     const steps = 25;
     for (int i = 1; i <= steps; i++) {
       await Future.delayed(const Duration(milliseconds: 28));
       if (!mounted) return;
       setState(() {
-        _displayScore = (gs.bestScore * i / steps).toInt();
-        _displayLetters = (gs.totalLettersAllTime * i / steps).toInt();
-        _displayCombo = (gs.bestComboAllTime * i / steps).toInt();
+        _lScore = (gs.bestScore * i / steps).toInt();
+        _lLetters = (gs.totalLettersAllTime * i / steps).toInt();
+        _lCombo = (gs.bestComboAllTime * i / steps).toInt();
+        _wScore = (wgs.bestScore * i / steps).toInt();
+        _wWords = (wgs.totalWordsAllTime * i / steps).toInt();
+        _wCombo = (wgs.bestComboAllTime * i / steps).toInt();
       });
     }
   }
@@ -58,67 +85,198 @@ class _HighScoreScreenState extends State<HighScoreScreen> {
           ),
         ),
         centerTitle: true,
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: AppColors.primary,
+          unselectedLabelColor: AppColors.textSecondary,
+          indicatorColor: AppColors.primary,
+          indicatorWeight: 3,
+          labelStyle: GoogleFonts.poppins(
+              fontSize: 13, fontWeight: FontWeight.w700),
+          unselectedLabelStyle: GoogleFonts.poppins(
+              fontSize: 13, fontWeight: FontWeight.w500),
+          tabs: const [
+            Tab(text: '🔤  Letter Mode'),
+            Tab(text: '📝  Word Mode'),
+          ],
+        ),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              // Trophy
-              Center(
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: AppColors.accent.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  child: const Center(
-                    child: Text('🏆', style: TextStyle(fontSize: 52)),
-                  ),
-                ).animate().fadeIn(duration: 400.ms).scale(
-                    begin: const Offset(0.7, 0.7)),
-              ),
-              const SizedBox(height: 32),
-              // Stats cards
-              _StatCard(
-                label: 'BEST SCORE',
-                value: '$_displayScore',
-                icon: Icons.star_rounded,
-                color: AppColors.primary,
-                delay: 100,
-              ),
-              const SizedBox(height: 16),
-              _StatCard(
-                label: 'TOTAL LETTERS CAUGHT',
-                value: '$_displayLetters',
-                icon: Icons.keyboard_rounded,
-                color: AppColors.secondary,
-                delay: 200,
-              ),
-              const SizedBox(height: 16),
-              _StatCard(
-                label: 'BEST COMBO',
-                value: 'x$_displayCombo',
-                icon: Icons.local_fire_department_rounded,
-                color: AppColors.accent,
-                delay: 300,
-              ),
-              const SizedBox(height: 16),
-              _StatCard(
-                label: 'ACCURACY',
-                value: '${widget.gameState.accuracy}%',
-                icon: Icons.gps_fixed_rounded,
-                color: AppColors.magnetPowerUp,
-                delay: 400,
-              ),
-            ],
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _LetterModeStats(
+            displayScore: _lScore,
+            displayLetters: _lLetters,
+            displayCombo: _lCombo,
+            accuracy: widget.gameState.accuracy,
           ),
+          _WordModeStats(
+            displayScore: _wScore,
+            displayWords: _wWords,
+            displayCombo: _wCombo,
+            accuracy: widget.wordGameState.accuracy,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Letter Mode Tab ───────────────────────────────────────
+
+class _LetterModeStats extends StatelessWidget {
+  final int displayScore;
+  final int displayLetters;
+  final int displayCombo;
+  final int accuracy;
+
+  const _LetterModeStats({
+    required this.displayScore,
+    required this.displayLetters,
+    required this.displayCombo,
+    required this.accuracy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Center(
+              child: Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(26),
+                ),
+                child: const Center(
+                  child: Text('🏆', style: TextStyle(fontSize: 46)),
+                ),
+              )
+                  .animate()
+                  .fadeIn(duration: 400.ms)
+                  .scale(begin: const Offset(0.7, 0.7)),
+            ),
+            const SizedBox(height: 28),
+            _StatCard(
+              label: 'BEST SCORE',
+              value: '$displayScore',
+              icon: Icons.star_rounded,
+              color: AppColors.primary,
+              delay: 100,
+            ),
+            const SizedBox(height: 14),
+            _StatCard(
+              label: 'TOTAL LETTERS CAUGHT',
+              value: '$displayLetters',
+              icon: Icons.keyboard_rounded,
+              color: AppColors.secondary,
+              delay: 200,
+            ),
+            const SizedBox(height: 14),
+            _StatCard(
+              label: 'BEST COMBO',
+              value: 'x$displayCombo',
+              icon: Icons.local_fire_department_rounded,
+              color: AppColors.accent,
+              delay: 300,
+            ),
+            const SizedBox(height: 14),
+            _StatCard(
+              label: 'ACCURACY',
+              value: '$accuracy%',
+              icon: Icons.gps_fixed_rounded,
+              color: AppColors.magnetPowerUp,
+              delay: 400,
+            ),
+          ],
         ),
       ),
     );
   }
 }
+
+// ── Word Mode Tab ─────────────────────────────────────────
+
+class _WordModeStats extends StatelessWidget {
+  final int displayScore;
+  final int displayWords;
+  final int displayCombo;
+  final int accuracy;
+
+  const _WordModeStats({
+    required this.displayScore,
+    required this.displayWords,
+    required this.displayCombo,
+    required this.accuracy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Center(
+              child: Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(26),
+                ),
+                child: const Center(
+                  child: Text('📝', style: TextStyle(fontSize: 46)),
+                ),
+              )
+                  .animate()
+                  .fadeIn(duration: 400.ms)
+                  .scale(begin: const Offset(0.7, 0.7)),
+            ),
+            const SizedBox(height: 28),
+            _StatCard(
+              label: 'BEST SCORE',
+              value: '$displayScore',
+              icon: Icons.star_rounded,
+              color: AppColors.secondary,
+              delay: 100,
+            ),
+            const SizedBox(height: 14),
+            _StatCard(
+              label: 'TOTAL WORDS TYPED',
+              value: '$displayWords',
+              icon: Icons.spellcheck_rounded,
+              color: AppColors.primary,
+              delay: 200,
+            ),
+            const SizedBox(height: 14),
+            _StatCard(
+              label: 'BEST COMBO',
+              value: 'x$displayCombo',
+              icon: Icons.local_fire_department_rounded,
+              color: AppColors.accent,
+              delay: 300,
+            ),
+            const SizedBox(height: 14),
+            _StatCard(
+              label: 'ACCURACY',
+              value: '$accuracy%',
+              icon: Icons.gps_fixed_rounded,
+              color: AppColors.magnetPowerUp,
+              delay: 400,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Shared stat card ──────────────────────────────────────
 
 class _StatCard extends StatelessWidget {
   final String label;
