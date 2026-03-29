@@ -2,9 +2,10 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../audio_service.dart';
 import '../utils/app_theme.dart';
 
-class PauseOverlay extends StatelessWidget {
+class PauseOverlay extends StatefulWidget {
   final VoidCallback onResume;
   final VoidCallback onRestart;
   final VoidCallback onExit;
@@ -15,6 +16,18 @@ class PauseOverlay extends StatelessWidget {
     required this.onRestart,
     required this.onExit,
   });
+
+  @override
+  State<PauseOverlay> createState() => _PauseOverlayState();
+}
+
+class _PauseOverlayState extends State<PauseOverlay> {
+  bool _musicOn = AudioService.instance.musicOn;
+
+  Future<void> _toggleMusic() async {
+    await AudioService.instance.toggle();
+    setState(() => _musicOn = AudioService.instance.musicOn);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +53,7 @@ class PauseOverlay extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // ── Icon ──
                 Container(
                   width: 60,
                   height: 60,
@@ -60,41 +74,135 @@ class PauseOverlay extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
+
+                // ── Resume ──
                 _PauseBtn(
                   label: 'Resume',
                   icon: Icons.play_arrow_rounded,
                   color: AppColors.primary,
-                  onTap: onResume,
+                  onTap: widget.onResume,
                 ),
                 const SizedBox(height: 12),
+
+                // ── Restart ──
                 _PauseBtn(
                   label: 'Restart',
                   icon: Icons.refresh_rounded,
                   color: AppColors.secondary,
-                  onTap: onRestart,
+                  onTap: widget.onRestart,
                 ),
                 const SizedBox(height: 12),
+
+                // ── Music mute / unmute ──
+                _MusicBtn(musicOn: _musicOn, onToggle: _toggleMusic),
+                const SizedBox(height: 12),
+
+                // ── Exit ──
                 _PauseBtn(
                   label: 'Exit',
                   icon: Icons.home_rounded,
                   color: AppColors.surface,
                   textColor: AppColors.textPrimary,
-                  onTap: onExit,
+                  onTap: widget.onExit,
                 ),
               ],
             ),
-          ).animate().scale(
-                begin: const Offset(0.8, 0.8),
-                end: const Offset(1.0, 1.0),
-                duration: 250.ms,
-                curve: Curves.easeOutBack,
-              ),
+          )
+              .animate()
+              .scale(
+            begin: const Offset(0.8, 0.8),
+            end: const Offset(1.0, 1.0),
+            duration: 250.ms,
+            curve: Curves.easeOutBack,
+          ),
         ),
       ),
     );
   }
 }
 
+// ─── Music mute / unmute button ───────────────────────────────────────────────
+class _MusicBtn extends StatefulWidget {
+  final bool musicOn;
+  final VoidCallback onToggle;
+  const _MusicBtn({required this.musicOn, required this.onToggle});
+
+  @override
+  State<_MusicBtn> createState() => _MusicBtnState();
+}
+
+class _MusicBtnState extends State<_MusicBtn> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    // Matches existing button colour pattern:
+    //   ON  → accent (yellow)  so it stands out positively
+    //   OFF → surface (grey)   so it looks inactive
+    final isOn = widget.musicOn;
+    final bgColor   = isOn ? AppColors.accent   : AppColors.surface;
+    final textColor = isOn ? AppColors.textPrimary : AppColors.textSecondary;
+    final icon      = isOn ? Icons.volume_up_rounded : Icons.volume_off_rounded;
+    final label     = isOn ? 'Music On' : 'Music Off';
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onToggle();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.96 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: double.infinity,
+          height: 50,
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: isOn
+                ? [
+              BoxShadow(
+                color: AppColors.accent.withOpacity(0.30),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              )
+            ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Icon swaps with a scale crossfade
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                transitionBuilder: (child, anim) =>
+                    ScaleTransition(scale: anim, child: child),
+                child: Icon(icon,
+                    key: ValueKey(icon), color: textColor, size: 20),
+              ),
+              const SizedBox(width: 8),
+              // Label crossfades colour
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: TextStyle(
+                  color: textColor,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+                child: Text(label),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Generic pause button (unchanged) ────────────────────────────────────────
 class _PauseBtn extends StatelessWidget {
   final String label;
   final IconData icon;
@@ -122,12 +230,12 @@ class _PauseBtn extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           boxShadow: color != AppColors.surface
               ? [
-                  BoxShadow(
-                    color: color.withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  )
-                ]
+            BoxShadow(
+              color: color.withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ]
               : null,
         ),
         child: Row(

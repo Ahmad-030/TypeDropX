@@ -61,13 +61,7 @@ class AboutScreen extends StatelessWidget {
                   color: AppColors.textPrimary,
                 ),
               ).animate(delay: 100.ms).fadeIn(),
-              Text(
-                'Version 1.0.0',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
-                ),
-              ).animate(delay: 150.ms).fadeIn(),
+
               const SizedBox(height: 28),
 
               // Description card
@@ -200,7 +194,14 @@ class AboutScreen extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-
+                        Text(
+                          'Edocutopp',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
                         Text(
                           'Developer & Designer',
                           style: GoogleFonts.poppins(
@@ -209,7 +210,7 @@ class AboutScreen extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'contact@ahmbuilds.com',
+                          'whitesamuelkoma@gmail.com',
                           style: GoogleFonts.poppins(
                             fontSize: 12,
                             color: AppColors.primary,

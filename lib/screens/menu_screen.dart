@@ -1,6 +1,8 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../audio_service.dart';
 import '../utils/app_theme.dart';
 import '../widgets/floating_letters_bg.dart';
 import '../widgets/menu_button.dart';
@@ -23,6 +25,9 @@ class _MenuScreenState extends State<MenuScreen> {
   final GameState _gameState = GameState();
   final WordGameState _wordGameState = WordGameState();
 
+  // Mirrors AudioService so the icon updates on toggle
+  bool _musicOn = AudioService.instance.musicOn;
+
   @override
   void initState() {
     super.initState();
@@ -35,6 +40,11 @@ class _MenuScreenState extends State<MenuScreen> {
     _gameState.dispose();
     _wordGameState.dispose();
     super.dispose();
+  }
+
+  Future<void> _toggleMusic() async {
+    await AudioService.instance.toggle();
+    setState(() => _musicOn = AudioService.instance.musicOn);
   }
 
   void _goPlay() {
@@ -86,8 +96,20 @@ class _MenuScreenState extends State<MenuScreen> {
                 child: IntrinsicHeight(
                   child: Column(
                     children: [
-                      const SizedBox(height: 40),
-                      // Logo
+                      const SizedBox(height: 16),
+
+                      // ── Music toggle (top-right) ─────────────────────
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: _MusicToggleBtn(
+                          musicOn: _musicOn,
+                          onToggle: _toggleMusic,
+                        ),
+                      ).animate(delay: 50.ms).fadeIn(),
+
+                      const SizedBox(height: 16),
+
+                      // ── Logo ─────────────────────────────────────────
                       Container(
                         width: 88,
                         height: 88,
@@ -111,6 +133,7 @@ class _MenuScreenState extends State<MenuScreen> {
                           .animate()
                           .fadeIn(duration: 400.ms)
                           .scale(begin: const Offset(0.8, 0.8)),
+
                       const SizedBox(height: 14),
                       Text(
                         'TypeDrop X',
@@ -129,9 +152,10 @@ class _MenuScreenState extends State<MenuScreen> {
                           fontWeight: FontWeight.w500,
                         ),
                       ).animate(delay: 150.ms).fadeIn(),
+
                       const SizedBox(height: 32),
 
-                      // ── Game Mode Section ──────────────────
+                      // ── Game Modes ────────────────────────────────────
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
@@ -146,18 +170,16 @@ class _MenuScreenState extends State<MenuScreen> {
                       ).animate(delay: 180.ms).fadeIn(),
                       const SizedBox(height: 10),
 
-                      // Letter Mode card
                       _ModeCard(
                         delay: 200,
                         icon: '🔤',
                         title: 'Letter Mode',
-                        subtitle: 'Catch falling letters before they hit the ground',
+                        subtitle:
+                        'Catch falling letters before they hit the ground',
                         color: AppColors.primary,
                         onTap: _goPlay,
                       ),
                       const SizedBox(height: 12),
-
-                      // Word Mode card
                       _ModeCard(
                         delay: 280,
                         icon: '📝',
@@ -169,7 +191,7 @@ class _MenuScreenState extends State<MenuScreen> {
 
                       const SizedBox(height: 24),
 
-                      // ── Other buttons ─────────────────────
+                      // ── More ─────────────────────────────────────────
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
@@ -225,7 +247,6 @@ class _MenuScreenState extends State<MenuScreen> {
                       ).animate(delay: 480.ms).fadeIn().slideY(begin: 0.4, end: 0),
 
                       const Spacer(),
-
                       const SizedBox(height: 20),
                     ],
                   ),
@@ -239,8 +260,78 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 }
 
-// ── Mode Card Widget ───────────────────────────────────────
+// ─── Music toggle button ──────────────────────────────────────────────────────
+class _MusicToggleBtn extends StatefulWidget {
+  final bool musicOn;
+  final VoidCallback onToggle;
+  const _MusicToggleBtn({required this.musicOn, required this.onToggle});
 
+  @override
+  State<_MusicToggleBtn> createState() => _MusicToggleBtnState();
+}
+
+class _MusicToggleBtnState extends State<_MusicToggleBtn> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.musicOn ? AppColors.primary : AppColors.textSecondary;
+    final icon = widget.musicOn
+        ? Icons.music_note_rounded
+        : Icons.music_off_rounded;
+    final label = widget.musicOn ? 'Music On' : 'Music Off';
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onToggle();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.93 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        child: Container(
+          padding:
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.10),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withOpacity(0.35), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(_pressed ? 0.25 : 0.10),
+                blurRadius: _pressed ? 12 : 6,
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                transitionBuilder: (child, anim) =>
+                    ScaleTransition(scale: anim, child: child),
+                child: Icon(icon, key: ValueKey(icon), color: color, size: 18),
+              ),
+              const SizedBox(width: 7),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: color),
+                child: Text(label),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Mode Card ────────────────────────────────────────────────────────────────
 class _ModeCard extends StatefulWidget {
   final int delay;
   final String icon;

@@ -1,4 +1,4 @@
-package com.example.typedropx
+package com.edanopertan.typedropx
 
 import io.flutter.embedding.android.FlutterActivity
 
